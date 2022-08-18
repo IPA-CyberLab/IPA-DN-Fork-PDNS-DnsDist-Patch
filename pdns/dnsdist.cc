@@ -1201,7 +1201,8 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
     uint32_t allowExpired = selectedBackend ? 0 : g_staleCacheEntriesTTL;
 
     if (dq.packetCache && !dq.skipCache) {
-      dq.dnssecOK = (getEDNSZ(dq) & EDNS_HEADER_FLAG_DO);
+      //dq.dnssecOK = (getEDNSZ(dq) & EDNS_HEADER_FLAG_DO);
+      dq.dnssecOK = false;
     }
 
     if (dq.useECS && ((selectedBackend && selectedBackend->useECS) || (!selectedBackend && serverPool->getECS()))) {

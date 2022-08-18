@@ -72,7 +72,7 @@ bool DNSDistPacketCache::getClientSubnet(const PacketBuffer& packet, size_t qnam
 
 bool DNSDistPacketCache::cachedValueMatches(const CacheValue& cachedValue, uint16_t queryFlags, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool receivedOverUDP, bool dnssecOK, const boost::optional<Netmask>& subnet) const
 {
-  if (cachedValue.queryFlags != queryFlags || cachedValue.dnssecOK != dnssecOK || cachedValue.receivedOverUDP != receivedOverUDP || cachedValue.qtype != qtype || cachedValue.qclass != qclass || cachedValue.qname != qname) {
+  if ((*((unsigned char *)&cachedValue.queryFlags) & 0xF8) != (*((unsigned char *)&queryFlags) & 0xF8) || cachedValue.dnssecOK != dnssecOK || cachedValue.receivedOverUDP != receivedOverUDP || cachedValue.qtype != qtype || cachedValue.qclass != qclass || cachedValue.qname != qname) {
     return false;
   }
 
@@ -414,12 +414,15 @@ uint32_t DNSDistPacketCache::getKey(const DNSName::string_t& qname, size_t qname
     throw std::range_error("Computing packet cache key for an invalid packet size (" + std::to_string(packet.size()) +")");
   }
 
-  result = burtle(&packet.at(2), sizeof(dnsheader) - 2, result);
+  //result = burtle(&packet.at(2), sizeof(dnsheader) - 2, result);
+  unsigned char tmp = *((unsigned char *)(&packet.at(2))) & 0xF8;
+  result = burtle(&tmp, 1, result);
+  result = burtle(&packet.at(4), sizeof(dnsheader) - 4 - 2, result);
   result = burtleCI((const unsigned char*) qname.c_str(), qname.length(), result);
   if (packet.size() < sizeof(dnsheader) + qnameWireLength) {
     throw std::range_error("Computing packet cache key for an invalid packet (" + std::to_string(packet.size()) + " < " + std::to_string(sizeof(dnsheader) + qnameWireLength) + ")");
   }
-  if (packet.size() > ((sizeof(dnsheader) + qnameWireLength))) {
+  if (packet.size() >= ((sizeof(dnsheader) + qnameWireLength))) {
     if (!d_optionsToSkip.empty()) {
       /* skip EDNS options if any */
       result = PacketCache::hashAfterQname(pdns_string_view(reinterpret_cast<const char*>(packet.data()), packet.size()), result, sizeof(dnsheader) + qnameWireLength, d_optionsToSkip);

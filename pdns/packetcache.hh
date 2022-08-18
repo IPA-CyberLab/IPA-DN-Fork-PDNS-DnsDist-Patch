@@ -45,14 +45,15 @@ public:
        = 15
     */
     const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(packet.data());
-    if (ntohs(dh->qdcount) != 1 || ntohs(dh->ancount) != 0 || ntohs(dh->nscount) != 0 || ntohs(dh->arcount) != 1 || (pos + 15) >= packetSize) {
+    if (ntohs(dh->qdcount) != 1 || ntohs(dh->ancount) != 0 || ntohs(dh->nscount) != 0 || ntohs(dh->arcount) != 1 || (pos + 15) > packetSize) {
       if (packetSize > pos) {
         currentHash = burtle(reinterpret_cast<const unsigned char*>(&packet.at(pos)), packetSize - pos, currentHash);
       }
       return currentHash;
     }
 
-    currentHash = burtle(reinterpret_cast<const unsigned char*>(&packet.at(pos)), 15, currentHash);
+    //currentHash = burtle(reinterpret_cast<const unsigned char*>(&packet.at(pos)), 15, currentHash);
+    return burtle(reinterpret_cast<const unsigned char*>(&packet.at(pos)), 4, currentHash);
     /* skip the qtype (2), qclass (2) */
     /* root label (1), type (2), class (2) and ttl (4) */
     /* already hashed above */
